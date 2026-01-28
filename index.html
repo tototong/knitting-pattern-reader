@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧶 실뜨기 도안 읽어주기</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(to bottom, #f3e8ff, #fce7f3); min-height: 100vh; padding: 16px; }
+    
+    .container { max-width: 1000px; margin: 0 auto; }
+    .container.narrow { max-width: 420px; }
+    
+    h1 { text-align: center; color: #7c3aed; font-size: 24px; margin-bottom: 16px; }
+    
+    /* 2컬럼 레이아웃 */
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .left-panel {
+      position: sticky;
+      top: 16px;
+    }
+    .left-panel img {
+      width: 100%;
+      max-height: calc(100vh - 100px);
+      object-fit: contain;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .right-panel {
+      max-width: 420px;
+    }
+    
+    /* 모바일 반응형 */
+    @media (max-width: 768px) {
+      .two-column {
+        grid-template-columns: 1fr;
+      }
+      .left-panel {
+        position: relative;
+        top: 0;
+      }
+      .left-panel img {
+        max-height: 200px;
+        object-fit: contain;
+      }
+      .right-panel {
+        max-width: 100%;
+      }
+    }
+    
+    .card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
+    .btn:active { transform: scale(0.95); }
+    .btn-purple { background: linear-gradient(to right, #8b5cf6, #ec4899); color: white; }
+    .btn-green { background: #22c55e; color: white; }
+    .btn-red { background: #ef4444; color: white; }
+    .btn-yellow { background: #eab308; color: white; }
+    .btn-blue { background: #3b82f6; color: white; }
+    .btn-gray { background: #6b7280; color: white; }
+    .btn:disabled { background: #d1d5db; cursor: not-allowed; }
+    
+    .listening-indicator { 
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px; background: #fef2f2; border-radius: 12px; margin-bottom: 16px;
+    }
+    .listening-indicator.active { background: #dcfce7; }
+    .pulse-dot {
+      width: 12px; height: 12px; background: #ef4444; border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+    .listening-indicator.active .pulse-dot { background: #22c55e; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } }
+    
+    .current-display { text-align: center; padding: 24px; }
+    .current-display .step { color: #6b7280; font-size: 14px; margin-bottom: 8px; }
+    .current-display .main { color: #7c3aed; font-size: 36px; font-weight: bold; margin-bottom: 12px; }
+    .current-display .next { color: #9ca3af; font-size: 14px; }
+    .transcript { text-align: center; padding: 12px; font-size: 16px; color: #374151; background: #f9fafb; border-radius: 8px; margin-bottom: 16px; min-height: 44px; }
+    .commands { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 12px; background: #faf5ff; border-radius: 12px; margin-bottom: 16px; }
+    .commands span { background: white; padding: 8px 4px; border-radius: 8px; text-align: center; font-size: 12px; font-weight: bold; color: #7c3aed; }
+    .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .controls .btn { padding: 12px; font-size: 16px; }
+    
+    input[type="text"], input[type="password"] {
+      width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 12px;
+      font-size: 14px; margin-bottom: 12px;
+    }
+    input:focus { outline: none; border-color: #8b5cf6; }
+    
+    .file-upload {
+      position: relative;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      overflow: hidden;
+      background: #faf5ff;
+      border: 2px dashed #c4b5fd;
+      display: block;
+    }
+    .file-upload:hover {
+      background: #f3e8ff;
+      border-color: #8b5cf6;
+    }
+    
+    .pattern-list { max-height: 200px; overflow-y: auto; }
+    .pattern-item { display: flex; gap: 8px; padding: 4px 0; font-size: 14px; }
+    .pattern-item .num { color: #8b5cf6; font-family: monospace; width: 24px; }
+    
+    .info { background: #eff6ff; border-radius: 12px; padding: 16px; font-size: 14px; color: #1e40af; }
+    .info h3 { font-size: 16px; margin-bottom: 8px; }
+    .info ol, .info ul { margin-left: 20px; }
+    .info li { margin-bottom: 4px; }
+    
+    .error { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+    .success { background: #dcfce7; color: #166534; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+    
+    .api-section { margin-bottom: 16px; }
+    .api-section label { display: block; font-weight: bold; color: #374151; margin-bottom: 8px; }
+    
+    .loading { display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .spinner { width: 20px; height: 20px; border: 3px solid #e5e7eb; border-top-color: #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab { flex: 1; padding: 12px; text-align: center; border: none; background: #e5e7eb; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    .tab.active { background: #8b5cf6; color: white; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    // 상태
+    let screen = 'setup'; // setup, input, reading
+    let apiKey = localStorage.getItem('anthropic_api_key') || '';
+    let imageData = null;
+    let imagePreview = null;
+    let imageType = null;
+    let pattern = [];
+    let currentIndex = -1;
+    let isListening = false;
+    let transcript = '';
+    let recognition = null;
+    let isSpeaking = false;
+    let isAnalyzing = false;
+    let errorMsg = '';
+    let inputMode = 'image'; // image or text
+    let manualText = '';
+    const synth = window.speechSynthesis;
+
+    // 음성 출력
+    function speak(text) {
+      if (!synth) return;
+      synth.cancel();
+      isSpeaking = true;
+      
+      if (recognition && isListening) {
+        try { recognition.stop(); } catch(e) {}
+      }
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ko-KR';
+      utterance.rate = 0.8;
+      const voices = synth.getVoices();
+      const koreanVoice = voices.find(v => v.lang.includes('ko'));
+      if (koreanVoice) utterance.voice = koreanVoice;
+      
+      utterance.onend = () => {
+        isSpeaking = false;
+        if (screen === 'reading' && isListening) {
+          setTimeout(() => startRecognition(), 100);
+        }
+      };
+      
+      synth.speak(utterance);
+    }
+
+    // 동작 함수들
+    function goToNext() {
+      if (currentIndex < pattern.length - 1) {
+        currentIndex++;
+        speak(pattern[currentIndex]);
+        render();
+      } else {
+        speak('끝');
+      }
+    }
+
+    function goToPrev() {
+      if (currentIndex > 0) {
+        currentIndex--;
+        speak(pattern[currentIndex]);
+        render();
+      }
+    }
+
+    function repeatCurrent() {
+      if (currentIndex >= 0) speak(pattern[currentIndex]);
+    }
+
+    function stopReading() {
+      screen = 'input';
+      isListening = false;
+      currentIndex = -1;
+      if (synth) synth.cancel();
+      if (recognition) try { recognition.stop(); } catch(e) {}
+      render();
+    }
+
+    // 음성 명령 처리
+    function processVoiceCommand(text) {
+      const cmd = text.toLowerCase().trim();
+      
+      if (/다음|다$|담|단|따음|다움|next|넥스트/.test(cmd)) {
+        goToNext();
+        return '✓ 다음';
+      }
+      if (/이전|뒤로|뒤|back|백/.test(cmd)) {
+        goToPrev();
+        return '✓ 이전';
+      }
+      if (/다시|반복|뭐|again|어게인|뭐라고/.test(cmd)) {
+        repeatCurrent();
+        return '✓ 다시';
+      }
+      if (/정지|그만|스톱|stop|끝|종료/.test(cmd)) {
+        stopReading();
+        return '✓ 정지';
+      }
+      return null;
+    }
+
+    // 음성 인식 시작
+    function startRecognition() {
+      if (!recognition || isSpeaking) return;
+      try { recognition.start(); } catch (e) {}
+    }
+
+    // 음성 인식 초기화
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert('이 브라우저는 음성 인식을 지원하지 않습니다. Chrome을 사용해주세요.');
+        return false;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.lang = 'ko-KR';
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 5;
+
+      recognition.onstart = () => {
+        transcript = '🎤 듣는 중...';
+        render();
+      };
+
+      recognition.onresult = (event) => {
+        let finalTranscript = '';
+        let interimTranscript = '';
+
+        for (let i = 0; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalTranscript += result[0].transcript;
+          } else {
+            interimTranscript += result[0].transcript;
+          }
+        }
+
+        if (interimTranscript) {
+          transcript = `듣는 중: "${interimTranscript}"`;
+          render();
+        }
+
+        if (finalTranscript) {
+          const action = processVoiceCommand(finalTranscript);
+          transcript = action ? `"${finalTranscript}" → ${action}` : `"${finalTranscript}"`;
+          render();
+        }
+      };
+
+      recognition.onerror = (event) => {
+        if (event.error === 'no-speech') {
+          transcript = '(조용함 - 다시 듣는 중...)';
+        } else if (event.error === 'not-allowed') {
+          transcript = '❌ 마이크 권한을 허용해주세요!';
+          isListening = false;
+        } else if (event.error !== 'aborted') {
+          transcript = `오류: ${event.error}`;
+        }
+        render();
+      };
+
+      recognition.onend = () => {
+        if (screen === 'reading' && isListening && !isSpeaking) {
+          setTimeout(() => startRecognition(), 50);
+        }
+      };
+
+      return true;
+    }
+
+    // API 키 저장
+    function saveApiKey() {
+      const input = document.getElementById('apiKeyInput');
+      if (input && input.value.trim()) {
+        apiKey = input.value.trim();
+        localStorage.setItem('anthropic_api_key', apiKey);
+        screen = 'input';
+        render();
+      }
+    }
+
+    // API 키 삭제
+    function clearApiKey() {
+      apiKey = '';
+      localStorage.removeItem('anthropic_api_key');
+      render();
+    }
+
+    // 이미지 업로드
+    function handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      errorMsg = '';
+      const reader = new FileReader();
+      reader.onload = () => {
+        imagePreview = reader.result;
+        imageData = reader.result.split(',')[1];
+        imageType = file.type;
+        render();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // AI로 도안 분석
+    async function analyzePattern() {
+      if (!imageData || !apiKey) return;
+
+      isAnalyzing = true;
+      errorMsg = '';
+      pattern = [];
+      render();
+
+      try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 2000,
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'image', source: { type: 'base64', media_type: imageType, data: imageData } },
+                { type: 'text', text: `이것은 뜨개질/대바늘/코바늘 도안 이미지입니다.
+
+도안을 분석해서 각 코(스티치)를 순서대로 읽어주세요.
+
+**도안 기호:**
+- 빈칸, |, 세로선 = 겉뜨기
+- -, 가로선, 점 = 안뜨기
+- O, 동그라미 = 코늘리기
+- /, \\ = 코모아뜨기
+- X = 교차뜨기
+
+**출력 규칙:**
+- 반드시 JSON 배열로만 응답
+- 연속된 같은 뜨기는 합쳐서: "겉뜨기 다섯 코"
+- 행이 바뀌면: "다음 줄"
+- 다른 설명 없이 배열만
+
+예: ["겉뜨기 세 코", "안뜨기 두 코", "다음 줄", "안뜨기 두 코"]
+
+도안을 인식할 수 없으면 빈 배열 []` }
+              ]
+            }]
+          })
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error?.message || `API 오류: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.content?.[0]?.text) {
+          const text = data.content[0].text.trim();
+          const jsonMatch = text.match(/\[[\s\S]*\]/);
+          
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              pattern = parsed;
+            } else {
+              errorMsg = '도안을 인식하지 못했습니다. 더 선명한 이미지를 시도해주세요.';
+            }
+          } else {
+            errorMsg = '분석 결과를 처리할 수 없습니다.';
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        errorMsg = `분석 실패: ${err.message}`;
+      } finally {
+        isAnalyzing = false;
+        render();
+      }
+    }
+
+    // 수동 패턴 파싱
+    function parseManualPattern() {
+      const textarea = document.getElementById('manualInput');
+      if (!textarea) return;
+      
+      const lines = textarea.value.split('\n').map(l => l.trim()).filter(l => l);
+      if (lines.length === 0) {
+        errorMsg = '패턴을 입력해주세요';
+        render();
+        return;
+      }
+      
+      pattern = lines;
+      manualText = textarea.value;
+      errorMsg = '';
+      render();
+    }
+
+    // 시작
+    function startReading() {
+      if (pattern.length === 0) return;
+      
+      if (!recognition && !initSpeechRecognition()) return;
+      
+      screen = 'reading';
+      isListening = true;
+      currentIndex = 0;
+      transcript = '';
+      speak(pattern[0]);
+      render();
+    }
+
+    // 리셋
+    function resetAll() {
+      stopReading();
+      imageData = null;
+      imagePreview = null;
+      pattern = [];
+      manualText = '';
+      errorMsg = '';
+      screen = 'input';
+      render();
+    }
+
+    // 렌더링
+    function render() {
+      const app = document.getElementById('app');
+
+      // Setup 화면 (API 키 입력)
+      if (screen === 'setup' || !apiKey) {
+        app.innerHTML = `
+          <div class="container narrow">
+            <h1>🧶 실뜨기 도안 읽어주기</h1>
+            <div class="card">
+              <div class="api-section">
+                <label>🔑 Anthropic API 키</label>
+                <input type="password" id="apiKeyInput" placeholder="sk-ant-..." value="${apiKey}" />
+                <button onclick="saveApiKey()" class="btn btn-purple">저장하고 시작</button>
+              </div>
+            </div>
+            
+            <div class="info">
+              <h3>📌 API 키 얻는 방법</h3>
+              <ol>
+                <li><a href="https://console.anthropic.com" target="_blank" style="color:#3b82f6">console.anthropic.com</a> 접속</li>
+                <li>회원가입 또는 로그인</li>
+                <li>API Keys 메뉴에서 새 키 생성</li>
+                <li>위에 붙여넣기</li>
+              </ol>
+              <p style="margin-top:12px;font-size:12px;color:#6b7280;">
+                * API 키는 브라우저에만 저장되며 외부로 전송되지 않습니다.
+              </p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Reading 화면 - 2컬럼
+      if (screen === 'reading') {
+        app.innerHTML = `
+          <div class="container">
+            <h1>🧶 실뜨기 도안 읽어주기</h1>
+            <div class="two-column">
+              <div class="left-panel">
+                ${imagePreview ? `<img src="${imagePreview}" alt="도안" />` : ''}
+              </div>
+              <div class="right-panel">
+                <div class="listening-indicator ${isListening && !isSpeaking ? 'active' : ''}">
+                  <div class="pulse-dot"></div>
+                  <span>${isSpeaking ? '🔊 말하는 중...' : '🎤 듣는 중 - "다음"이라고 말하세요'}</span>
+                </div>
+
+                <div class="card current-display">
+                  <div class="step">${currentIndex + 1} / ${pattern.length}</div>
+                  <div class="main">${pattern[currentIndex]}</div>
+                  ${currentIndex < pattern.length - 1 ? `<div class="next">다음: ${pattern[currentIndex + 1]}</div>` : ''}
+                </div>
+
+                <div class="transcript">${transcript || '음성 인식 대기 중...'}</div>
+
+                <div class="commands">
+                  <span>"다음"</span>
+                  <span>"이전"</span>
+                  <span>"다시"</span>
+                  <span>"정지"</span>
+                </div>
+
+                <div class="controls">
+                  <button onclick="goToPrev()" class="btn btn-gray" ${currentIndex <= 0 ? 'disabled' : ''}>⬅️ 이전</button>
+                  <button onclick="repeatCurrent()" class="btn btn-yellow">🔄 다시</button>
+                  <button onclick="goToNext()" class="btn btn-blue" ${currentIndex >= pattern.length - 1 ? 'disabled' : ''}>다음 ➡️</button>
+                </div>
+
+                <button onclick="stopReading()" class="btn btn-red">⏹️ 정지</button>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Input 화면 - 이미지 있으면 2컬럼, 없으면 1컬럼
+      if (imagePreview) {
+        app.innerHTML = `
+          <div class="container">
+            <h1>🧶 실뜨기 도안 읽어주기</h1>
+            <div class="two-column">
+              <div class="left-panel">
+                <img src="${imagePreview}" alt="도안" />
+                <label class="file-upload" style="margin-top:12px;display:block;">
+                  <input type="file" id="imageInput" accept="image/*" onchange="handleImageUpload(event)" style="display:none;" />
+                  <span style="color:#6b7280;font-size:14px;">📷 다른 이미지 선택</span>
+                </label>
+              </div>
+              <div class="right-panel">
+                ${imageData && pattern.length === 0 ? `
+                  <button onclick="analyzePattern()" class="btn btn-purple" ${isAnalyzing ? 'disabled' : ''} style="margin-bottom:16px;">
+                    ${isAnalyzing 
+                      ? '<span class="loading"><span class="spinner"></span> AI가 분석 중...</span>'
+                      : '🔍 AI로 도안 분석하기'}
+                  </button>
+                ` : ''}
+
+                ${errorMsg ? `<div class="error">${errorMsg}</div>` : ''}
+
+                ${pattern.length > 0 ? `
+                  <div class="card">
+                    <p style="margin-bottom:12px;font-weight:bold;color:#22c55e;">✅ 인식된 패턴 (${pattern.length}단계)</p>
+                    <div class="pattern-list">
+                      ${pattern.map((item, i) => `<div class="pattern-item"><span class="num">${i + 1}.</span><span>${item}</span></div>`).join('')}
+                    </div>
+                  </div>
+                  <button onclick="startReading()" class="btn btn-green" style="font-size:24px;padding:20px;">▶️ 시작</button>
+                ` : ''}
+
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                  <button onclick="resetAll()" style="flex:1;padding:12px;background:transparent;border:1px solid #d1d5db;border-radius:8px;color:#6b7280;cursor:pointer;">🔄 처음으로</button>
+                  <button onclick="clearApiKey()" style="flex:1;padding:12px;background:transparent;border:1px solid #d1d5db;border-radius:8px;color:#6b7280;cursor:pointer;">🔑 API 키 변경</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        // 이미지 없을 때 - 1컬럼
+        app.innerHTML = `
+          <div class="container narrow">
+            <h1>🧶 실뜨기 도안 읽어주기</h1>
+            
+            <div class="tabs">
+              <button class="tab ${inputMode === 'image' ? 'active' : ''}" onclick="inputMode='image'; render();">📷 이미지 업로드</button>
+              <button class="tab ${inputMode === 'text' ? 'active' : ''}" onclick="inputMode='text'; render();">✏️ 직접 입력</button>
+            </div>
+
+            ${inputMode === 'image' ? `
+              <label class="file-upload">
+                <input type="file" id="imageInput" accept="image/*" onchange="handleImageUpload(event)" style="display:none;" />
+                <div style="pointer-events:none;">
+                  <p style="font-size:48px;margin-bottom:8px;">📷</p>
+                  <p style="color:#6b7280;">도안 이미지를 클릭해서 업로드</p>
+                </div>
+              </label>
+            ` : `
+              <div class="card">
+                <p style="margin-bottom:12px;font-weight:bold;color:#374151;">패턴 입력 (한 줄에 하나씩)</p>
+                <textarea id="manualInput" style="width:100%;height:150px;padding:12px;border:2px solid #e5e7eb;border-radius:12px;font-size:14px;" placeholder="겉뜨기 세 코
+안뜨기 두 코
+다음 줄
+안뜨기 두 코">${manualText}</textarea>
+                <button onclick="parseManualPattern()" class="btn btn-purple" style="margin-top:12px;">✅ 패턴 등록</button>
+              </div>
+            `}
+
+            ${errorMsg ? `<div class="error">${errorMsg}</div>` : ''}
+
+            ${pattern.length > 0 ? `
+              <div class="card">
+                <p style="margin-bottom:12px;font-weight:bold;color:#22c55e;">✅ 인식된 패턴 (${pattern.length}단계)</p>
+                <div class="pattern-list">
+                  ${pattern.map((item, i) => `<div class="pattern-item"><span class="num">${i + 1}.</span><span>${item}</span></div>`).join('')}
+                </div>
+              </div>
+              <button onclick="startReading()" class="btn btn-green" style="font-size:24px;padding:20px;">▶️ 시작</button>
+            ` : ''}
+
+            <div style="display:flex;gap:8px;margin-top:12px;">
+              <button onclick="resetAll()" style="flex:1;padding:12px;background:transparent;border:1px solid #d1d5db;border-radius:8px;color:#6b7280;cursor:pointer;">🔄 처음으로</button>
+              <button onclick="clearApiKey()" style="flex:1;padding:12px;background:transparent;border:1px solid #d1d5db;border-radius:8px;color:#6b7280;cursor:pointer;">🔑 API 키 변경</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // 초기화
+    window.onload = () => {
+      synth.getVoices();
+      if (apiKey) screen = 'input';
+      render();
+    };
+  </script>
+</body>
+</html>
